@@ -34,6 +34,9 @@ class PROCESS_INFORMATION(Structure):
 _kernel32_dll = WinDLL("kernel32", use_last_error=True)
 
 class Proc:
+    def __init__(self, info):
+        self.info = info
+
     def wait_to_exit(self):
         return WAIT_TIMEOUT
 
@@ -52,7 +55,10 @@ def create_proc():
 
     pi = PROCESS_INFORMATION(None, None, 0, 0)
 
-    createProcessW(None, cmd_line, None, None, 0, 0, None, None, byref(si),
-        byref(pi))
+    result = createProcessW(None, cmd_line, None, None, 0, 0, None, None, byref(si), byref(pi))
+    
+    proc = Proc(info=pi)
              
-    return Proc(), ERROR_SUCCESS
+    return proc, ERROR_SUCCESS
+
+

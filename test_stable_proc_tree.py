@@ -7,6 +7,9 @@ class StableProcTreeTestCases(unittest.TestCase):
         proc, last_error = stable_proc_tree.create_proc()
         self.assertIsNotNone(proc)
 
+        print(f'PID = {proc.info.dwProcessId}')
+        print(f'Proc handle = {hex(proc.info.hProcess)}')
+
         result = proc.wait_to_exit()
         self.assertEqual(result, stable_proc_tree.WAIT_TIMEOUT)
 
