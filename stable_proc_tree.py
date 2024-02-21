@@ -33,6 +33,11 @@ class PROCESS_INFORMATION(Structure):
 
 _kernel32_dll = WinDLL("kernel32", use_last_error=True)
 
+def errcheck(result, func, args):
+    if not result:
+        raise WinError(get_last_error())
+    return result
+
 class Proc:
     def __init__(self, info):
         self.info = info
@@ -45,8 +50,11 @@ class Proc:
 
 def create_proc():
     createProcessW = _kernel32_dll.CreateProcessW
+    createProcessW.restype = c_uint
+    createProcessW.errcheck = errcheck 
 
     cmd_line = create_unicode_buffer(sys.executable + " --version") 
+    #cmd_line = create_unicode_buffer("fooooo.exe" + " --version") 
 
     si = STARTUPINFOW(sizeof(STARTUPINFOW), None, None, None,
                         0, 0, 0, 0, 0,
@@ -56,9 +64,8 @@ def create_proc():
     pi = PROCESS_INFORMATION(None, None, 0, 0)
 
     result = createProcessW(None, cmd_line, None, None, 0, 0, None, None, byref(si), byref(pi))
-    
     proc = Proc(info=pi)
              
-    return proc, ERROR_SUCCESS
+    return proc
 
 

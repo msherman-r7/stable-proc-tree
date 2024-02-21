@@ -4,7 +4,7 @@ import stable_proc_tree
 
 class StableProcTreeTestCases(unittest.TestCase):
     def test_create_proc(self):
-        proc, last_error = stable_proc_tree.create_proc()
+        proc = stable_proc_tree.create_proc()
         self.assertIsNotNone(proc)
 
         print(f'PID = {proc.info.dwProcessId}')
