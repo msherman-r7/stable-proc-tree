@@ -12,11 +12,11 @@ class StableProcTreeTestCases(unittest.TestCase):
         proc = stable_proc_tree.create_proc(depth)
         self.assertIsNotNone(proc)
 
-        wait_result = stable_proc_tree.wait_event(d1_ready_event, 1000 * 5)
-        self.assertEqual(wait_result, stable_proc_tree.WAIT_OBJECT_0)
-
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')
+
+        wait_result = stable_proc_tree.wait_event(d1_ready_event, 1000 * 5)
+        self.assertEqual(wait_result, stable_proc_tree.WAIT_OBJECT_0)
 
         #result = proc.wait_to_exit()
         #self.assertEqual(result, stable_proc_tree.WAIT_TIMEOUT)

@@ -139,7 +139,9 @@ def main():
         depth_as_int = depth_as_int - 1
         depth_as_str = str(depth_as_int)
         child_ready_event = create_event(depth_as_str) 
-        create_proc(depth_as_str)
+        proc = create_proc(depth_as_str)
+        print(f'PID = {proc.info.dwProcessId}')
+        print(f'Proc handle = {hex(proc.info.hProcess)}')
         wait_result = wait_event(child_ready_event, 1000 * 5)
         if wait_result == WAIT_OBJECT_0:
             set_event(ready_event) 
