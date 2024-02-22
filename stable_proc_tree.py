@@ -3,8 +3,13 @@ import sys
 
 ERROR_SUCCESS = 0
 ERROR_ALREADY_EXISTS = 183
+
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 0x102
+WAIT_FAILED = -1
+
+EVENT_MODIFY_STATE = 0x0002
+SYNCHRONIZE = 0x00100000
 
 INVALID_HANDLE_VALUE = -1
 
@@ -49,6 +54,17 @@ def errcheckCreateEvent(result, func, args):
         raise WinError(le)
     return result
 
+def errcheckOpenEvent(result, func, args):
+    le = get_last_error()
+    if result == INVALID_HANDLE_VALUE:
+        raise WinError(le)
+    return result
+
+def errCheckWait(result, func, args):
+    if result == WAIT_FAILED:
+        raise WinError(get_last_error())
+    return result
+
 class Proc:
     def __init__(self, info):
         self.info = info
@@ -59,7 +75,7 @@ class Proc:
     def terminate(self):
         return True, ERROR_SUCCESS
 
-def create_event(name="d1"):
+def create_event(name):
     createEventW = _kernel32_dll.CreateEventW
     createEventW.restype = c_void_p
     createEventW.errcheck = errcheckCreateEvent
@@ -69,12 +85,37 @@ def create_event(name="d1"):
     handle = createEventW(None, 1, 0, event_name)
     return handle
 
-def create_proc(depth=1):
+def open_event(name):
+    openEventW = _kernel32_dll.OpenEventW
+    openEventW.restype  = c_void_p
+    openEventW.errcheck = errcheckOpenEvent
+
+    event_name = create_unicode_buffer("stable_proc_event_" + name)
+
+    handle = openEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, 0, event_name)
+    return handle 
+
+def wait_event(event_handle, timeout_ms):
+    waitForSingleObject = _kernel32_dll.WaitForSingleObject
+    waitForSingleObject.restype = c_uint
+    waitForSingleObject.errcheck = errCheckWait
+
+    result = waitForSingleObject(event_handle, timeout_ms)
+    return result 
+
+def set_event(event_handle):
+    setEvent = _kernel32_dll.SetEvent 
+    setEvent.restype = c_uint
+    setEvent.errcheck = errcheck
+    
+    setEvent(event_handle)
+
+def create_proc(depth):
     createProcessW = _kernel32_dll.CreateProcessW
     createProcessW.restype = c_uint
     createProcessW.errcheck = errcheck 
 
-    cmd_line = create_unicode_buffer(sys.executable + " --version") 
+    cmd_line = create_unicode_buffer(sys.executable + " stable_proc_tree.py " + depth) 
     #cmd_line = create_unicode_buffer("fooooo.exe" + " --version") 
 
     si = STARTUPINFOW(sizeof(STARTUPINFOW), None, None, None,
@@ -90,7 +131,11 @@ def create_proc(depth=1):
     return proc
 
 def main():
-    pass
+    print(sys.argv, len(sys.argv))
+    ready_event = open_event(sys.argv[1])
+    set_event(ready_event) 
+    
+    return 0
 
 if __name__ == '__main__':
     sys.exit(main())
