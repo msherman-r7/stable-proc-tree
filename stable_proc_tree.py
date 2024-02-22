@@ -13,6 +13,8 @@ SYNCHRONIZE = 0x00100000
 
 INVALID_HANDLE_VALUE = -1
 
+READY_EVENT = "stable_ready_event_"
+
 class STARTUPINFOW(Structure):
     _fields_ = [("cb", c_uint),
                 ("lpReserved", c_wchar_p),
@@ -75,22 +77,22 @@ class Proc:
     def terminate(self):
         return True, ERROR_SUCCESS
 
-def create_event(name):
+def create_event(prefix, depth):
     createEventW = _kernel32_dll.CreateEventW
     createEventW.restype = c_void_p
     createEventW.errcheck = errcheckCreateEvent
 
-    event_name = create_unicode_buffer("stable_proc_event_" + name)
+    event_name = create_unicode_buffer(prefix + depth)
 
     handle = createEventW(None, 1, 0, event_name)
     return handle
 
-def open_event(name):
+def open_event(prefix, depth):
     openEventW = _kernel32_dll.OpenEventW
     openEventW.restype  = c_void_p
     openEventW.errcheck = errcheckOpenEvent
 
-    event_name = create_unicode_buffer("stable_proc_event_" + name)
+    event_name = create_unicode_buffer(prefix + depth)
 
     handle = openEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, 0, event_name)
     return handle 
@@ -132,13 +134,13 @@ def create_proc(depth):
 
 def main():
     print(sys.argv, len(sys.argv))
-    ready_event = open_event(sys.argv[1])
+    ready_event = open_event(READY_EVENT, sys.argv[1])
 
     depth_as_int = int(sys.argv[1])
     if depth_as_int > 1:
         depth_as_int = depth_as_int - 1
         depth_as_str = str(depth_as_int)
-        child_ready_event = create_event(depth_as_str) 
+        child_ready_event = create_event(READY_EVENT, depth_as_str) 
         proc = create_proc(depth_as_str)
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')

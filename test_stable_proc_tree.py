@@ -6,7 +6,7 @@ class StableProcTreeTestCases(unittest.TestCase):
     def test_create_proc(self):
         depth = "2"
 
-        d1_ready_event = stable_proc_tree.create_event(depth)
+        d1_ready_event = stable_proc_tree.create_event(stable_proc_tree.READY_EVENT, depth)
         self.assertIsNotNone(d1_ready_event)
 
         proc = stable_proc_tree.create_proc(depth)
