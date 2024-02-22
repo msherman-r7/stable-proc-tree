@@ -2,8 +2,11 @@ from ctypes import *
 import sys
 
 ERROR_SUCCESS = 0
+ERROR_ALREADY_EXISTS = 183
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 0x102
+
+INVALID_HANDLE_VALUE = -1
 
 class STARTUPINFOW(Structure):
     _fields_ = [("cb", c_uint),
@@ -38,6 +41,14 @@ def errcheck(result, func, args):
         raise WinError(get_last_error())
     return result
 
+def errcheckCreateEvent(result, func, args):
+    le = get_last_error()
+    if result == INVALID_HANDLE_VALUE:
+        raise WinError(le)
+    if le == ERROR_ALREADY_EXISTS:
+        raise WinError(le)
+    return result
+
 class Proc:
     def __init__(self, info):
         self.info = info
@@ -48,7 +59,17 @@ class Proc:
     def terminate(self):
         return True, ERROR_SUCCESS
 
-def create_proc():
+def create_event(name="d1"):
+    createEventW = _kernel32_dll.CreateEventW
+    createEventW.restype = c_void_p
+    createEventW.errcheck = errcheckCreateEvent
+
+    event_name = create_unicode_buffer("stable_proc_event_" + name)
+
+    handle = createEventW(None, 1, 0, event_name)
+    return handle
+
+def create_proc(depth=1):
     createProcessW = _kernel32_dll.CreateProcessW
     createProcessW.restype = c_uint
     createProcessW.errcheck = errcheck 
@@ -68,4 +89,9 @@ def create_proc():
              
     return proc
 
+def main():
+    pass
+
+if __name__ == '__main__':
+    sys.exit(main())
 
