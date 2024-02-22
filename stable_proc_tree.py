@@ -12,10 +12,14 @@ INFINITE = -1
 EVENT_MODIFY_STATE = 0x0002
 SYNCHRONIZE = 0x00100000
 
-INVALID_HANDLE_VALUE = -1
+INVALID_HANDLE_VALUE = c_void_p(-1)
+
+PAGE_READONLY = 0x02
+PAGE_READWRITE = 0x04
 
 READY_EVENT = "stable_ready_event_"
 RESUME_EVENT = "stable_resume_event_"
+SHARED_MEM = "stable_shared_mem_"
 
 class STARTUPINFOW(Structure):
     _fields_ = [("cb", c_uint),
@@ -50,6 +54,20 @@ def errcheck(result, func, args):
         raise WinError(get_last_error())
     return result
 
+def errcheckCreateSharedMem(result, func, args):
+    le = get_last_error()
+    if result == None:
+        raise WinError(le)
+    if le == ERROR_ALREADY_EXISTS:
+        raise WinError(le)
+    return result
+
+def errcheckOpenSharedMem(result, func, args):
+    le = get_last_error()
+    if result == None:
+        raise WinError(le)
+    return result
+
 def errcheckCreateEvent(result, func, args):
     le = get_last_error()
     if result == INVALID_HANDLE_VALUE:
@@ -79,6 +97,26 @@ class Proc:
     def terminate(self):
         return True, ERROR_SUCCESS
 
+def create_shared_memory(access, prefix, depth):
+    createFileMappingW = _kernel32_dll.CreateFileMappingW
+    createFileMappingW.restype = c_void_p 
+    createFileMappingW.errcheck =  errcheckCreateSharedMem
+
+    shared_mem_name = create_unicode_buffer(prefix + depth)
+
+    handle = createFileMappingW(INVALID_HANDLE_VALUE, None, access, 0, 8, shared_mem_name)
+    return handle
+
+def open_shared_memory(access, prefix, depth):
+    openFileMappingW = _kernel32_dll.OpenFileMappingW
+    openFileMappingW.restype = c_void_p
+    openFileMappingW.errcheck = errcheckOpenSharedMem
+
+    shared_mem_name = create_unicode_buffer(prefix + depth)
+
+    handle = openFileMappingW(access, 0, shared_mem_name)
+    return handle 
+    
 def create_event(prefix, depth):
     createEventW = _kernel32_dll.CreateEventW
     createEventW.restype = c_void_p
@@ -138,6 +176,7 @@ def main():
     print(sys.argv, len(sys.argv))
     ready_event = open_event(READY_EVENT, sys.argv[1])
     resume_event = open_event(RESUME_EVENT, sys.argv[1])
+    shared_mem = open_shared_memory(PAGE_READWRITE, SHARED_MEM, sys.argv[1])
 
     depth_as_int = int(sys.argv[1])
     if depth_as_int > 1:
@@ -145,6 +184,7 @@ def main():
         depth_as_str = str(depth_as_int)
         child_ready_event = create_event(READY_EVENT, depth_as_str) 
         child_resume_event = create_event(RESUME_EVENT, depth_as_str) 
+        child_shared_mem = create_shared_memory(PAGE_READONLY, SHARED_MEM, depth_as_str)
         proc = create_proc(depth_as_str)
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')

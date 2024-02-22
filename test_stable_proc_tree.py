@@ -8,7 +8,9 @@ class StableProcTreeTestCases(unittest.TestCase):
         depth = "2"
 
         child_ready_event = stable_proc_tree.create_event(stable_proc_tree.READY_EVENT, depth)
-        d2_child_resume_event = stable_proc_tree.create_event(stable_proc_tree.RESUME_EVENT, depth)
+        child_resume_event = stable_proc_tree.create_event(stable_proc_tree.RESUME_EVENT, depth)
+        child_shared_mem = stable_proc_tree.create_shared_memory(stable_proc_tree.PAGE_READONLY,
+            stable_proc_tree.SHARED_MEM, depth)
 
         proc = stable_proc_tree.create_proc(depth)
         self.assertIsNotNone(proc)
@@ -21,12 +23,14 @@ class StableProcTreeTestCases(unittest.TestCase):
 
         # All processes in the tree have signalled that they are ready
 
-        time.sleep(3)
-        d1_child_resume_event = stable_proc_tree.open_event(stable_proc_tree.RESUME_EVENT, "1")
-        stable_proc_tree.set_event(d1_child_resume_event)
+        #time.sleep(3)
+        # resume grand child
+        grand_child_resume_event = stable_proc_tree.open_event(stable_proc_tree.RESUME_EVENT, "1")
+        stable_proc_tree.set_event(grand_child_resume_event)
 
-        time.sleep(5)
-        stable_proc_tree.set_event(d2_child_resume_event)
+        #time.sleep(5)
+        # resume child
+        stable_proc_tree.set_event(child_resume_event)
 
         #result = proc.wait_to_exit()
         #self.assertEqual(result, stable_proc_tree.WAIT_TIMEOUT)
