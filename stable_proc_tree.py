@@ -16,6 +16,10 @@ INVALID_HANDLE_VALUE = c_void_p(-1)
 
 PAGE_READONLY = 0x02
 PAGE_READWRITE = 0x04
+SEC_COMMIT = 0x08000000
+
+FILE_MAP_WRITE = 0x0002
+FILE_MAP_READ = 0x0004
 
 READY_EVENT = "stable_ready_event_"
 RESUME_EVENT = "stable_resume_event_"
@@ -116,6 +120,14 @@ def open_shared_memory(access, prefix, depth):
 
     handle = openFileMappingW(access, 0, shared_mem_name)
     return handle 
+
+def map_view_of_shared_memory(shared_mem, access):
+    mapViewOfFile = _kernel32_dll.MapViewOfFile
+    mapViewOfFile.restype = c_void_p
+    mapViewOfFile.errcheck = errcheckOpenSharedMem
+
+    ptr = mapViewOfFile(shared_mem, access, 0, 0, 8) 
+    return ptr
     
 def create_event(prefix, depth):
     createEventW = _kernel32_dll.CreateEventW
@@ -176,7 +188,8 @@ def main():
     print(sys.argv, len(sys.argv))
     ready_event = open_event(READY_EVENT, sys.argv[1])
     resume_event = open_event(RESUME_EVENT, sys.argv[1])
-    shared_mem = open_shared_memory(PAGE_READWRITE, SHARED_MEM, sys.argv[1])
+    shared_mem = open_shared_memory(FILE_MAP_WRITE, SHARED_MEM, sys.argv[1])
+    shared_mem_ptr = map_view_of_shared_memory(shared_mem, FILE_MAP_WRITE)
 
     depth_as_int = int(sys.argv[1])
     if depth_as_int > 1:
@@ -184,10 +197,15 @@ def main():
         depth_as_str = str(depth_as_int)
         child_ready_event = create_event(READY_EVENT, depth_as_str) 
         child_resume_event = create_event(RESUME_EVENT, depth_as_str) 
-        child_shared_mem = create_shared_memory(PAGE_READONLY, SHARED_MEM, depth_as_str)
+        child_shared_mem = create_shared_memory(PAGE_READWRITE, SHARED_MEM, depth_as_str)
         proc = create_proc(depth_as_str)
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')
+
+        ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
+        print("------- POINTER STUFF -------")
+        print(ptr_uint.contents)
+        ptr_uint[0] = proc.info.dwProcessId
 
         wait_result = wait_event(child_ready_event, 1000 * 5)
         if wait_result == WAIT_OBJECT_0:

@@ -1,3 +1,6 @@
+from ctypes import cast
+from ctypes import c_uint
+from ctypes import POINTER
 import time
 import unittest
 
@@ -9,7 +12,7 @@ class StableProcTreeTestCases(unittest.TestCase):
 
         child_ready_event = stable_proc_tree.create_event(stable_proc_tree.READY_EVENT, depth)
         child_resume_event = stable_proc_tree.create_event(stable_proc_tree.RESUME_EVENT, depth)
-        child_shared_mem = stable_proc_tree.create_shared_memory(stable_proc_tree.PAGE_READONLY,
+        child_shared_mem = stable_proc_tree.create_shared_memory(stable_proc_tree.PAGE_READWRITE,
             stable_proc_tree.SHARED_MEM, depth)
 
         proc = stable_proc_tree.create_proc(depth)
@@ -22,6 +25,11 @@ class StableProcTreeTestCases(unittest.TestCase):
         self.assertEqual(wait_result, stable_proc_tree.WAIT_OBJECT_0)
 
         # All processes in the tree have signalled that they are ready
+
+        child_shared_mem_ptr = stable_proc_tree.map_view_of_shared_memory(child_shared_mem, stable_proc_tree.PAGE_READWRITE)
+        print("child PID:")
+        ptr_uint = cast(child_shared_mem_ptr, POINTER(c_uint))
+        print(ptr_uint.contents)
 
         #time.sleep(3)
         # resume grand child
