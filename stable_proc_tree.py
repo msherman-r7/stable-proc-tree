@@ -7,6 +7,7 @@ ERROR_ALREADY_EXISTS = 183
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 0x102
 WAIT_FAILED = -1
+INFINITE = -1
 
 EVENT_MODIFY_STATE = 0x0002
 SYNCHRONIZE = 0x00100000
@@ -14,6 +15,7 @@ SYNCHRONIZE = 0x00100000
 INVALID_HANDLE_VALUE = -1
 
 READY_EVENT = "stable_ready_event_"
+RESUME_EVENT = "stable_resume_event_"
 
 class STARTUPINFOW(Structure):
     _fields_ = [("cb", c_uint),
@@ -135,22 +137,29 @@ def create_proc(depth):
 def main():
     print(sys.argv, len(sys.argv))
     ready_event = open_event(READY_EVENT, sys.argv[1])
+    resume_event = open_event(RESUME_EVENT, sys.argv[1])
 
     depth_as_int = int(sys.argv[1])
     if depth_as_int > 1:
         depth_as_int = depth_as_int - 1
         depth_as_str = str(depth_as_int)
         child_ready_event = create_event(READY_EVENT, depth_as_str) 
+        child_resume_event = create_event(RESUME_EVENT, depth_as_str) 
         proc = create_proc(depth_as_str)
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')
+
         wait_result = wait_event(child_ready_event, 1000 * 5)
         if wait_result == WAIT_OBJECT_0:
-            set_event(ready_event) 
+            set_event(ready_event)
+            wait_event(resume_event, INFINITE) 
+            print("Got resume event")
         else:
             print("Timed out while waiting for child at depth " + depth_as_str)
     else:
         set_event(ready_event) 
+        wait_event(resume_event, INFINITE) 
+        print("Got resume event")
     
     return 0
 
