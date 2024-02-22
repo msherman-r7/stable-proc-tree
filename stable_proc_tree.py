@@ -133,7 +133,20 @@ def create_proc(depth):
 def main():
     print(sys.argv, len(sys.argv))
     ready_event = open_event(sys.argv[1])
-    set_event(ready_event) 
+
+    depth_as_int = int(sys.argv[1])
+    if depth_as_int > 1:
+        depth_as_int = depth_as_int - 1
+        depth_as_str = str(depth_as_int)
+        child_ready_event = create_event(depth_as_str) 
+        create_proc(depth_as_str)
+        wait_result = wait_event(child_ready_event, 1000 * 5)
+        if wait_result == WAIT_OBJECT_0:
+            set_event(ready_event) 
+        else:
+            print("Timed out while waiting for child at depth " + depth_as_str)
+    else:
+        set_event(ready_event) 
     
     return 0
 

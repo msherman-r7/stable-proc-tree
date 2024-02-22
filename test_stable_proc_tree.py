@@ -4,10 +4,12 @@ import stable_proc_tree
 
 class StableProcTreeTestCases(unittest.TestCase):
     def test_create_proc(self):
-        d1_ready_event = stable_proc_tree.create_event(name="1")
+        depth = "2"
+
+        d1_ready_event = stable_proc_tree.create_event(depth)
         self.assertIsNotNone(d1_ready_event)
 
-        proc = stable_proc_tree.create_proc(depth="1")
+        proc = stable_proc_tree.create_proc(depth)
         self.assertIsNotNone(proc)
 
         wait_result = stable_proc_tree.wait_event(d1_ready_event, 1000 * 5)
