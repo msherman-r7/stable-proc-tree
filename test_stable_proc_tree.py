@@ -21,6 +21,9 @@ class StableProcTreeTestCases(unittest.TestCase):
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')
 
+        stable_proc_tree.close_handle(proc.info.hProcess)
+        stable_proc_tree.close_handle(proc.info.hThread)
+
         wait_result = stable_proc_tree.wait_event(child_ready_event, 1000 * 5)
         self.assertEqual(wait_result, stable_proc_tree.WAIT_OBJECT_0)
 

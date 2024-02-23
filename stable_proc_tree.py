@@ -164,6 +164,14 @@ def set_event(event_handle):
     
     setEvent(event_handle)
 
+def close_handle(handle):
+    closeHandle = _kernel32_dll.CloseHandle
+    closeHandle.restype = c_uint
+    closeHandle.errcheck = errcheck 
+
+    result = closeHandle(handle)
+    return result
+
 def create_proc(depth):
     createProcessW = _kernel32_dll.CreateProcessW
     createProcessW.restype = c_uint
@@ -201,6 +209,9 @@ def main():
         proc = create_proc(depth_as_str)
         print(f'PID = {proc.info.dwProcessId}')
         print(f'Proc handle = {hex(proc.info.hProcess)}')
+
+        close_handle(proc.info.hProcess)
+        close_handle(proc.info.hThread)
 
         ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
         print("------- POINTER STUFF -------")
