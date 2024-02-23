@@ -53,6 +53,9 @@ class PROCESS_INFORMATION(Structure):
 
 _kernel32_dll = WinDLL("kernel32", use_last_error=True)
 
+def errcheckNoDocumentedFailure(result, func, args):
+    return result 
+
 def errcheck(result, func, args):
     if not result:
         raise WinError(get_last_error())
@@ -192,12 +195,34 @@ def create_proc(depth):
              
     return proc
 
+def get_current_process_id():
+    getCurrentProcId = _kernel32_dll.GetCurrentProcessId
+    getCurrentProcId.restype = c_uint
+    getCurrentProcId.errcheck = errcheckNoDocumentedFailure
+    
+    result = getCurrentProcId()
+    return result
+
+def show_pids(myPid, depth):
+    depth_as_int = int(depth)
+    while depth_as_int > 0:
+        shared_mem = open_shared_memory(FILE_MAP_WRITE, SHARED_MEM, str(depth_as_int))
+        shared_mem_ptr = map_view_of_shared_memory(shared_mem, FILE_MAP_WRITE)
+        ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
+        print(f'{myPid}: show_pids: depth {depth_as_int} PID = {ptr_uint[0]}')
+        depth_as_int = depth_as_int - 1
+
 def main():
-    print(sys.argv, len(sys.argv))
+    myPid = get_current_process_id()
+    print(f'{myPid}: main: {sys.argv}')
     ready_event = open_event(READY_EVENT, sys.argv[1])
     resume_event = open_event(RESUME_EVENT, sys.argv[1])
+
+    # Write my PID to my shared memory segment
     shared_mem = open_shared_memory(FILE_MAP_WRITE, SHARED_MEM, sys.argv[1])
     shared_mem_ptr = map_view_of_shared_memory(shared_mem, FILE_MAP_WRITE)
+    ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
+    ptr_uint[0] = myPid
 
     depth_as_int = int(sys.argv[1])
     if depth_as_int > 1:
@@ -207,28 +232,23 @@ def main():
         child_resume_event = create_event(RESUME_EVENT, depth_as_str) 
         child_shared_mem = create_shared_memory(PAGE_READWRITE, SHARED_MEM, depth_as_str)
         proc = create_proc(depth_as_str)
-        print(f'PID = {proc.info.dwProcessId}')
-        print(f'Proc handle = {hex(proc.info.hProcess)}')
+        print(f'{myPid}: main: Created child process with PID = {proc.info.dwProcessId}')
+        print(f'{myPid}: main: Handle to child process = {hex(proc.info.hProcess)}')
 
         close_handle(proc.info.hProcess)
         close_handle(proc.info.hThread)
-
-        ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
-        print("------- POINTER STUFF -------")
-        print(ptr_uint.contents)
-        ptr_uint[0] = proc.info.dwProcessId
 
         wait_result = wait_event(child_ready_event, 1000 * 5)
         if wait_result == WAIT_OBJECT_0:
             set_event(ready_event)
             wait_event(resume_event, INFINITE) 
-            print("Got resume event")
+            print(f'{myPid}: main: Got resume event')
         else:
-            print("Timed out while waiting for child at depth " + depth_as_str)
+            print(f'{myPid}: main: Timed out while waiting for child at depth {depth_as_str}')
     else:
         set_event(ready_event) 
         wait_event(resume_event, INFINITE) 
-        print("Got resume event")
+        print(f'{myPid}: main: Got resume event')
     
     return 0
 

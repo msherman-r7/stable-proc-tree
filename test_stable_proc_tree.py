@@ -10,6 +10,8 @@ class StableProcTreeTestCases(unittest.TestCase):
     def test_create_proc(self):
         depth = "2"
 
+        myPid = stable_proc_tree.get_current_process_id()
+
         child_ready_event = stable_proc_tree.create_event(stable_proc_tree.READY_EVENT, depth)
         child_resume_event = stable_proc_tree.create_event(stable_proc_tree.RESUME_EVENT, depth)
         child_shared_mem = stable_proc_tree.create_shared_memory(stable_proc_tree.PAGE_READWRITE,
@@ -18,8 +20,8 @@ class StableProcTreeTestCases(unittest.TestCase):
         proc = stable_proc_tree.create_proc(depth)
         self.assertIsNotNone(proc)
 
-        print(f'PID = {proc.info.dwProcessId}')
-        print(f'Proc handle = {hex(proc.info.hProcess)}')
+        print(f'{myPid}: UT: Created child process with PID = {proc.info.dwProcessId}')
+        print(f'{myPid}: UT: Handle to child process = {hex(proc.info.hProcess)}')
 
         stable_proc_tree.close_handle(proc.info.hProcess)
         stable_proc_tree.close_handle(proc.info.hThread)
@@ -29,10 +31,7 @@ class StableProcTreeTestCases(unittest.TestCase):
 
         # All processes in the tree have signalled that they are ready
 
-        child_shared_mem_ptr = stable_proc_tree.map_view_of_shared_memory(child_shared_mem, stable_proc_tree.PAGE_READWRITE)
-        print("child PID:")
-        ptr_uint = cast(child_shared_mem_ptr, POINTER(c_uint))
-        print(ptr_uint.contents)
+        stable_proc_tree.show_pids(myPid, depth)
 
         #time.sleep(3)
         # resume grand child
