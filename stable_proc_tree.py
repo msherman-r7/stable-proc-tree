@@ -131,7 +131,15 @@ def map_view_of_shared_memory(shared_mem, access):
 
     ptr = mapViewOfFile(shared_mem, access, 0, 0, 8) 
     return ptr
-    
+
+def unmap_view_of_shared_memory(ptr):
+    unmapViewOfFile = _kernel32_dll.UnmapViewOfFile
+    unmapViewOfFile.restype = c_uint 
+    unmapViewOfFile.errcheck = errcheck 
+
+    result = unmapViewOfFile(ptr)
+    return result 
+
 def create_event(prefix, depth):
     createEventW = _kernel32_dll.CreateEventW
     createEventW.restype = c_void_p
@@ -209,7 +217,12 @@ def show_pids(myPid, depth):
         shared_mem = open_shared_memory(FILE_MAP_WRITE, SHARED_MEM, str(depth_as_int))
         shared_mem_ptr = map_view_of_shared_memory(shared_mem, FILE_MAP_WRITE)
         ptr_uint = cast(shared_mem_ptr, POINTER(c_uint))
+
         print(f'{myPid}: show_pids: depth {depth_as_int} PID = {ptr_uint[0]}')
+
+        unmap_view_of_shared_memory(ptr_uint)
+        close_handle(shared_mem)
+
         depth_as_int = depth_as_int - 1
 
 def main():
